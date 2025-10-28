@@ -1,63 +1,51 @@
 pipeline {
-    agent any   // 在任意可用节点上运行（构建机）
-
+    agent any
     environment {
-        PROJECT = "demo-app"
+        APP_PORT = "8000"
     }
-
     stages {
-
         stage('Checkout') {
             steps {
-                echo "=== 拉取代码中 ==="
-                // 通常这里 Jenkins 会自动从 Git 拉代码
+                echo "Checking out..."
+                checkout scm
                 sh 'pwd && ls -la'
             }
         }
-
-        stage('Build') {
+        stage('Setup') {
             steps {
-                echo "=== 编译阶段 ==="
-                sh 'echo "模拟编译 ${PROJECT}"'
-            }
-        }
-
-        stage('Test') {
-            steps {
-                echo "=== 测试阶段 ==="
+                echo "Setting up venv and installing deps..."
                 sh '''
-                    echo "运行单元测试..."
-                    sleep 2
-                    echo "所有测试通过 ✅"
+                  python3 -m venv venv
+                  . venv/bin/activate
+                  pip install -r requirements.txt || true
                 '''
             }
         }
-
+        stage('Lint & Test') {
+            steps {
+                echo "Running a simple smoke test..."
+                sh '''
+                  # quick check that app starts and accepts a request (background)
+                  . venv/bin/activate
+                  python app.py & sleep 1
+                  curl -fsS http://127.0.0.1:${APP_PORT}/ || (kill %1 && exit 1)
+                  kill %1 || true
+                '''
+            }
+        }
         stage('Deploy') {
             when {
-                branch 'main' // 只在 main 分支上部署
+                branch 'main'
             }
             steps {
-                echo "=== 部署阶段 ==="
-                sh '''
-                    echo "部署应用到测试环境..."
-                    sleep 2
-                    echo "部署成功 🚀"
-                '''
+                echo "Simulated deploy (only runs on main)"
             }
         }
     }
-
     post {
         always {
-            echo "=== 清理工作区 ==="
+            echo "Cleaning workspace"
             cleanWs()
-        }
-        success {
-            echo "✅ Pipeline 执行成功"
-        }
-        failure {
-            echo "❌ Pipeline 执行失败"
         }
     }
 }
