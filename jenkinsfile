@@ -1,0 +1,63 @@
+pipeline {
+    agent any   // 在任意可用节点上运行（构建机）
+
+    environment {
+        PROJECT = "demo-app"
+    }
+
+    stages {
+
+        stage('Checkout') {
+            steps {
+                echo "=== 拉取代码中 ==="
+                // 通常这里 Jenkins 会自动从 Git 拉代码
+                sh 'pwd && ls -la'
+            }
+        }
+
+        stage('Build') {
+            steps {
+                echo "=== 编译阶段 ==="
+                sh 'echo "模拟编译 ${PROJECT}"'
+            }
+        }
+
+        stage('Test') {
+            steps {
+                echo "=== 测试阶段 ==="
+                sh '''
+                    echo "运行单元测试..."
+                    sleep 2
+                    echo "所有测试通过 ✅"
+                '''
+            }
+        }
+
+        stage('Deploy') {
+            when {
+                branch 'main' // 只在 main 分支上部署
+            }
+            steps {
+                echo "=== 部署阶段 ==="
+                sh '''
+                    echo "部署应用到测试环境..."
+                    sleep 2
+                    echo "部署成功 🚀"
+                '''
+            }
+        }
+    }
+
+    post {
+        always {
+            echo "=== 清理工作区 ==="
+            cleanWs()
+        }
+        success {
+            echo "✅ Pipeline 执行成功"
+        }
+        failure {
+            echo "❌ Pipeline 执行失败"
+        }
+    }
+}
